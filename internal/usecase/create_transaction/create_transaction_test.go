@@ -1,9 +1,13 @@
-package createtransaction
+package create_transaction
 
 import (
+	"context"
 	"testing"
 
 	"github.com/CarlosHenriqueDamasceno/wallet-ms-fc/internal/entity"
+	"github.com/CarlosHenriqueDamasceno/wallet-ms-fc/internal/event"
+	"github.com/CarlosHenriqueDamasceno/wallet-ms-fc/internal/usecase/mocks"
+	"github.com/CarlosHenriqueDamasceno/wallet-ms-fc/pkg/events"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -18,6 +22,11 @@ func (m *AccountGatewayMock) Get(id string) (*entity.Account, error) {
 }
 
 func (m *AccountGatewayMock) Save(account *entity.Account) error {
+	args := m.Called(account)
+	return args.Error(0)
+}
+
+func (m *AccountGatewayMock) UpdateBalance(account *entity.Account) error {
 	args := m.Called(account)
 	return args.Error(0)
 }
@@ -37,28 +46,23 @@ func TestCreateTransactionUseCase_Execute(t *testing.T) {
 	accountFrom.Credit(110.0)
 	accountTo := entity.NewAccount(client)
 
-	accountMock := &AccountGatewayMock{}
-	accountMock.On("Get", accountFrom.ID).Return(accountFrom, nil)
-	accountMock.On("Get", accountTo.ID).Return(accountTo, nil)
-
-	transactionMock := &TransactionGatewayMock{}
-	transactionMock.On("Save", mock.Anything).Return(nil)
-
-	useCase := NewCreateTransactionUseCase(accountMock, transactionMock)
+	mockUow := &mocks.UowMock{}
+	mockUow.On("Do", mock.Anything, mock.Anything).Return(nil)
 
 	input := CreateTransactionInputDto{
-		AccountFromId: accountFrom.ID,
-		AccountToId:   accountTo.ID,
+		AccountIDFrom: accountFrom.ID,
+		AccountIDTo:   accountTo.ID,
 		Amount:        100,
 	}
 
-	output, err := useCase.Execute(input)
+	dispatcher := events.NewEventDispatcher()
+	event := event.NewTransactionCreated()
+	ctx := context.Background()
+
+	useCase := NewCreateTransactionUseCase(mockUow, dispatcher, event)
+	output, err := useCase.Execute(ctx, input)
 	assert.Nil(t, err)
 	assert.NotNil(t, output)
-	assert.Equal(t, 10.0, accountFrom.Balance)
-	assert.Equal(t, 100.0, accountTo.Balance)
-	accountMock.AssertExpectations(t)
-	accountMock.AssertNumberOfCalls(t, "Get", 2)
-	transactionMock.AssertExpectations(t)
-	transactionMock.AssertNumberOfCalls(t, "Save", 1)
+	mockUow.AssertExpectations(t)
+	mockUow.AssertNumberOfCalls(t, "Do", 1)
 }

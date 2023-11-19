@@ -1,4 +1,4 @@
-package createaccount
+package create_account
 
 import (
 	"testing"
@@ -32,6 +32,11 @@ func (m *AccountGatewayMock) Get(id string) (*entity.Account, error) {
 }
 
 func (m *AccountGatewayMock) Save(account *entity.Account) error {
+	args := m.Called(account)
+	return args.Error(0)
+}
+
+func (m *AccountGatewayMock) UpdateBalance(account *entity.Account) error {
 	args := m.Called(account)
 	return args.Error(0)
 }

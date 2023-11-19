@@ -34,13 +34,13 @@ func TestClientDBTestSuite(t *testing.T) {
 
 func (s *ClientDBTestSuite) TestSave() {
 	client, _ := entity.NewClient("Carlos", "carlos@teste.com")
-	err := s.ClientDB.Save(*client)
+	err := s.ClientDB.Save(client)
 	s.Nil(err)
 }
 
 func (s *ClientDBTestSuite) TestGet() {
 	client, _ := entity.NewClient("Carlos", "carlos@teste.com")
-	s.ClientDB.Save(*client)
+	s.ClientDB.Save(client)
 	persistedClient, err := s.ClientDB.Get(client.ID)
 	s.Nil(err)
 	s.Equal(client.ID, persistedClient.ID)
